@@ -1,7 +1,7 @@
 
 FROM php:8.2-fpm-alpine
 
-RUN apk add --no-cache postgresql-dev git \
+RUN apk add --no-cache postgresql-dev git supervisor \
     && docker-php-ext-install pdo pdo_pgsql opcache
 
 WORKDIR /var/www/html
@@ -11,4 +11,8 @@ RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local
     && composer install --no-dev --optimize-autoloader \
     && chown -R www-data:www-data storage bootstrap/cache
 
+COPY supervisord.conf /etc/supervisord.conf
+
 EXPOSE 9000
+
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]
