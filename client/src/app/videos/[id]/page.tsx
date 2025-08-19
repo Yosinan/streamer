@@ -6,9 +6,10 @@ import RenditionSelector from "@/components/RenditionSelector";
 export default async function VideoDetail({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
-  const video: Video = await getVideo(params.id);
+  const { id } = await params;
+  const video: Video = await getVideo(id);
   const playable = video.status === "ready" && !!video.streaming_url;
 
   return (
