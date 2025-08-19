@@ -11,9 +11,23 @@ services:
     environment:
       - APP_ENV=production
       - APP_DEBUG=false
-      - APP_URL=http://localhost:8000
+      - APP_URL=https://streamer.yosinan.tech
+      - DB_CONNECTION=pgsql
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_DATABASE=video
+      - DB_USERNAME=video_user
+      - DB_PASSWORD=video_password
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.api.rule=Host(`streamer.yosinan.tech`)"
+      - "traefik.http.routers.api.entrypoints=websecure"
+      - "traefik.http.routers.api.tls.certresolver=cloudflare"
+      - "traefik.http.services.api.loadbalancer.server.port=9000"
     depends_on:
       - db
+    networks:
+      - app_net
 
   client:
     build:
@@ -37,6 +51,11 @@ services:
     volumes:
       - db_data:/var/lib/postgresql/data
       - ./backups:/backups
-
+    networks:
+      - app_net
 volumes:
   db_data:
+
+networks:
+  app_net:
+    external: true

@@ -1,18 +1,27 @@
-
 FROM php:8.2-fpm-alpine
 
-RUN apk add --no-cache postgresql-dev git supervisor \
+# Install system dependencies and PHP extensions in one layer
+RUN apk add --no-cache postgresql-dev git \
     && docker-php-ext-install pdo pdo_pgsql opcache
 
+# Set working directory
 WORKDIR /var/www/html
+
+# Copy only composer files first for better caching
+COPY composer.json composer.lock ./
+
+# Install Composer globally
+RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+
 COPY . .
 
-RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer \
-    && composer install --no-dev --optimize-autoloader \
-    && chown -R www-data:www-data storage bootstrap/cache
+# Install PHP dependencies (no-dev, optimized autoloader)
+RUN composer install
 
-COPY supervisord.conf /etc/supervisord.conf
+# Copy application code
+COPY . .
+
+# Set permissions for storage and cache
+RUN chown -R www-data:www-data storage bootstrap/cache
 
 EXPOSE 9000
-
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]
