@@ -45,7 +45,7 @@ services:
       - "traefik.http.routers.api.rule=Host(`streamer.yosinan.tech`)"
       - "traefik.http.routers.api.entrypoints=websecure"
       - "traefik.http.routers.api.tls.certresolver=cloudflare"
-      - "traefik.http.services.api.loadbalancer.server.port=9000"
+      - "traefik.http.services.api.loadbalancer.server.port=3000"
 
   db:
     image: postgres:17-alpine
