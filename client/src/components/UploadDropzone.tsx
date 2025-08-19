@@ -52,7 +52,8 @@ export default function UploadDropzone() {
         error: false,
       });
       setSelectedFile(null);
-    } catch (err: any) {
+    } catch (err: unknown) {
+      console.error('Upload error:', err);
       setModal({
         open: true,
         message: "Upload failed. Please try again.",

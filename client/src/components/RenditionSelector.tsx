@@ -2,19 +2,12 @@
 import { useState } from "react";
 
 export default function RenditionSelector({
-  videoId,
   renditions,
 }: {
   videoId: string;
   renditions: string[];
 }) {
   const [selectedRendition, setSelectedRendition] = useState(renditions?.[0] || "");
-
-  const handleDownload = () => {
-    if (!selectedRendition) return;
-    const url = `/api/hls/${videoId}/${selectedRendition}.mp4`;
-    window.open(url, "_blank");
-  };
 
   return (
     <section>

@@ -1,7 +1,6 @@
 "use client";
 import { useState } from "react";
 import VideoPlayerWrapper from "@/components/VideoPlayerWrapper";
-import RenditionSelector from "@/components/RenditionSelector";
 
 export default function VideoPlayerWithRendition({
   videoId,
