@@ -31,6 +31,37 @@ services:
     networks:
       - app_net
 
+  worker:
+    build:
+      context: ./api
+    container_name: laravel_worker
+    working_dir: /var/www
+    command: php artisan queue:work --verbose --tries=3 --timeout=90
+    volumes:
+      - ./api:/var/www
+    environment:
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - APP_URL=https://api.streamer.yosinan.tech
+      - DB_CONNECTION=pgsql
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_DATABASE=video
+      - DB_USERNAME=video_user
+      - DB_PASSWORD=video_password
+      - QUEUE_CONNECTION=redis
+    depends_on:
+      - db
+    networks:
+      - app_net
+      
+  redis:
+    image: redis:alpine
+    container_name: streamer_redis
+    restart: unless-stopped
+    networks:
+      - app_net
+
   client:
     build:
       context: ./client
