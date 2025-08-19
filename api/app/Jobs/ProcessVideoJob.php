@@ -18,15 +18,16 @@ class ProcessVideoJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public function __construct(public Video $video) {}
+    public function __construct(public int $videoId) {}
 
     public function handle(): void
     {
-        Log::info("ProcessVideoJob: Started for video {$this->video->uuid}");
+        $video = Video::findOrFail($this->videoId);
+        Log::info("ProcessVideoJob: Started for video {$video->uuid}");
 
-        $this->video->update(['status' => 'processing']);
+        $video->update(['status' => 'processing']);
 
-        $uuid = $this->video->uuid;
+        $uuid = $video->uuid;
         $workDir = storage_path("app/tmp/{$uuid}");
 
         Log::info("ProcessVideoJob: Creating work directory at {$workDir}");
@@ -36,9 +37,9 @@ class ProcessVideoJob implements ShouldQueue
         // 1) download original locally
         $tmpInput = "{$workDir}/input";
 
-        Log::info("ProcessVideoJob: Downloading original from R2 ({$this->video->original_path}) to {$tmpInput}");
+        Log::info("ProcessVideoJob: Downloading original from R2 ({$video->original_path}) to {$tmpInput}");
 
-        $stream = Storage::disk('r2')->readStream($this->video->original_path);
+        $stream = Storage::disk('r2')->readStream($video->original_path);
         file_put_contents($tmpInput, stream_get_contents($stream));
         fclose($stream);
 
@@ -127,7 +128,7 @@ class ProcessVideoJob implements ShouldQueue
 
         Log::info("ProcessVideoJob: Updating video record in DB");
 
-        $this->video->update([
+        $video->update([
             'hls_path' => "{$remotePrefix}/master.m3u8",
             'renditions' => array_column($variants, 'name'),
             'status' => 'ready',
@@ -139,12 +140,13 @@ class ProcessVideoJob implements ShouldQueue
 
         File::deleteDirectory($workDir);
 
-        Log::info("ProcessVideoJob: ✅ Completed for video {$this->video->uuid}");
+        Log::info("ProcessVideoJob: ✅ Completed for video {$video->uuid}");
     }
 
     public function failed(Throwable $e): void
     {
-        $this->video->update(['status' => 'failed', 'failure_reason' => $e->getMessage()]);
+        $video = Video::findOrFail($this->videoId);
+        $video->update(['status' => 'failed', 'failure_reason' => $e->getMessage()]);
     }
 
     private function run(array $cmd): void

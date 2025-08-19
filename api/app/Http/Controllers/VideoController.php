@@ -99,12 +99,48 @@ class VideoController extends Controller
      */
     public function update(Request $req, $id)
     {
+        Log::info('File info', [
+            'has_file' => $req->hasFile('file'),
+            'file_name' => $req->hasFile('file') ? $req->file('file')->getClientOriginalName() : null,
+        ]);
         $data = $req->validate([
             'title' => ['nullable','string','max:150'],
             'description' => ['nullable','string','max:1000'],
+            'file' => ['nullable', 'file', 'mimetypes:video/mp4,video/quicktime,video/x-matroska']
         ]);
 
         $video = Video::where('uuid', $id)->orWhere('id', $id)->firstOrFail();
+
+        // If a new file is uploaded, replace the video
+        if ($req->hasFile('file')) {
+            Log::info('Replacing video file', [
+                'video_id' => $video->id,
+                'uuid' => $video->uuid,
+            ]);
+            // Delete old video from R2
+            Storage::disk('r2')->delete($video->original_path);
+
+            $file = $req->file('file');
+            $uuid = $video->uuid;
+            $originalPath = "originals/{$uuid}/source.".$file->getClientOriginalExtension();
+
+            // Upload new video to R2
+            Storage::disk('r2')->put($originalPath, file_get_contents($file->getRealPath()), [
+                'visibility' => 'private',
+                'ContentType' => $file->getMimeType(),
+            ]);
+
+            // Update video fields
+            $video->original_path = $originalPath;
+            $video->size_bytes = $file->getSize();
+            $video->content_type = $file->getMimeType();
+            $video->status = 'queued';
+            $video->renditions = null; // Clear previous renditions
+
+            // Dispatch HLS conversion
+            ProcessVideoJob::dispatch($video->id);
+        }
+
         $video->fill($data)->save();
 
         return response()->json($video);

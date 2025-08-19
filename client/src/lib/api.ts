@@ -42,8 +42,20 @@ export async function getVideo(id: string) {
   return response.data;
 }
 
-export async function updateVideo(id: string, payload: { title?: string; description?: string }) {
-  return client.put<Video>(`/videos/${id}`, payload).then((r) => r.data);
+export async function updateVideo(id: string, payload: { title?: string; description?: string; file?: File }) {
+  if (payload.file) {
+    const form = new FormData();
+    if (payload.title) form.append("title", payload.title);
+    if (payload.description) form.append("description", payload.description);
+    form.append("file", payload.file);
+    return client
+      .post<Video>(`/videos/${id}`, form, {
+        headers: { "Content-Type": "multipart/form-data" },
+      })
+      .then((r) => r.data);
+  } else {
+    return client.post<Video>(`/videos/${id}`, payload).then((r) => r.data);
+  }
 }
 
 export async function uploadVideo(
