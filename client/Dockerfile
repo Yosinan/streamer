@@ -1,13 +1,28 @@
-FROM node:20
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-COPY . .
+COPY package.json package-lock.json ./
+RUN npm install --frozen-lockfile
 
-RUN npm install
+COPY . .
 
 RUN npm run build
 
+FROM node:22-alpine
+
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+RUN npm install --production --frozen-lockfile
+
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/next.config.* ./
+COPY --from=builder /app/package.json ./
+COPY --from=builder /app/package-lock.json ./
+
 EXPOSE 3000
 
-CMD ["npm", "start"]
+CMD ["npx", "next", "start"]
